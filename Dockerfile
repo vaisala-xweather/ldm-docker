@@ -1,5 +1,7 @@
 FROM public.ecr.aws/amazonlinux/amazonlinux:2023
 
+LABEL org.opencontainers.image.description="Unidata Local Data Manager (LDM) on Amazon Linux 2023, supervised by s6-overlay"
+
 # Software versions
 ARG LDM_VERSION=6.15.0
 ARG PYTHON_VERSION=3.14
