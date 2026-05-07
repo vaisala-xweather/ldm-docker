@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+IMAGE="${IMAGE:-ldm:test}"
+CONTAINER="ldm-smoketest-$$"
+STARTUP_WAIT="${STARTUP_WAIT:-10}"
+SKIP_BUILD="${SKIP_BUILD:-0}"
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+cleanup() {
+  docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+fail() {
+  echo "FAIL: $*" >&2
+  echo "---- container logs ----" >&2
+  docker logs "$CONTAINER" 2>&1 >&2 || true
+  exit 1
+}
+
+if [[ "$SKIP_BUILD" != "1" ]]; then
+  echo "==> Building $IMAGE"
+  docker build -t "$IMAGE" "$REPO_ROOT"
+fi
+
+echo "==> Starting container $CONTAINER"
+docker run -d --name "$CONTAINER" "$IMAGE" >/dev/null
+
+echo "==> Waiting ${STARTUP_WAIT}s for /init"
+sleep "$STARTUP_WAIT"
+
+echo "==> Verifying container is still running"
+if ! docker ps --filter "name=^${CONTAINER}$" --filter status=running -q | grep -q .; then
+  fail "container exited during startup"
+fi
+
+echo "==> Scanning logs for failures"
+logs=$(docker logs "$CONTAINER" 2>&1)
+echo "$logs"
+if echo "$logs" | grep -Eqi 's6-overlay-suexec: fatal|^fatal:|\[error\]|FATAL|exited [1-9][0-9]*|terminated unexpectedly'; then
+  fail "error pattern detected in startup logs"
+fi
+
+echo "==> Verifying LDM binaries"
+docker exec -u ldm "$CONTAINER" bash -lc 'command -v ldmd && command -v ldmadmin' \
+  || fail "ldm binaries missing from PATH"
+
+echo "==> Running ldmd -h"
+docker exec -u ldm "$CONTAINER" bash -lc 'ldmd -h' \
+  || fail "ldmd -h did not exit cleanly"
+
+echo "==> All checks passed"

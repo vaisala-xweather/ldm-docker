@@ -48,6 +48,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build for smoke test
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: ldm:test
+          build-args: |
+            LDM_VERSION=${{ steps.parse.outputs.ldm_version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test
+        env:
+          IMAGE: ldm:test
+          SKIP_BUILD: '1'
+        run: ./util/test
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
