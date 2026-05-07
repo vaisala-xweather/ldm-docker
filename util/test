@@ -20,6 +20,17 @@ fail() {
   exit 1
 }
 
+assert() {
+  local command="$1"
+  local expect="${2:-}"
+  local result
+  result="$(docker exec -u ldm "$CONTAINER" bash -lc "$command")" \
+    || fail "$command did not exit cleanly"
+  if [[ -n "$expect" && "$result" != *"$expect"* ]]; then
+    fail "$command output did not contain '$expect' (got: $result)"
+  fi
+}
+
 if [[ "$SKIP_BUILD" != "1" ]]; then
   echo "==> Building $IMAGE"
   docker build -t "$IMAGE" "$REPO_ROOT"
@@ -44,11 +55,15 @@ if echo "$logs" | grep -Eqi 's6-overlay-suexec: fatal|^fatal:|\[error\]|FATAL|ex
 fi
 
 echo "==> Verifying LDM binaries"
-docker exec -u ldm "$CONTAINER" bash -lc 'command -v ldmd && command -v ldmadmin' \
-  || fail "ldm binaries missing from PATH"
+assert 'command -v ldmd' 'ldmd'
+assert 'command -v ldmadmin' 'ldmadmin'
 
 echo "==> Running ldmd -h"
-docker exec -u ldm "$CONTAINER" bash -lc 'ldmd -h' \
-  || fail "ldmd -h did not exit cleanly"
+assert 'ldmd -h'
+
+echo "==> Verifying Python tooling"
+assert 'which python' '/bin/python'
+assert 'python --version' 'Python 3.14'
+assert 'which pip' '/bin/pip'
 
 echo "==> All checks passed"
