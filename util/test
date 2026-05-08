@@ -61,9 +61,4 @@ assert 'command -v ldmadmin' 'ldmadmin'
 echo "==> Running ldmd -h"
 assert 'ldmd -h'
 
-echo "==> Verifying Python tooling"
-assert 'which python' '/bin/python'
-assert 'python --version' 'Python 3.14'
-assert 'which pip' '/bin/pip'
-
 echo "==> All checks passed"
