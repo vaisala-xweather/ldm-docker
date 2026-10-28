@@ -1,10 +1,10 @@
-FROM public.ecr.aws/amazonlinux/amazonlinux:2023 AS builder
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023@sha256:8272aee6146a36222baaf71d72ab6799770957414ac63b1e940cec58c9197188 AS builder
 
 LABEL org.opencontainers.image.description="Unidata Local Data Manager (LDM) on Amazon Linux 2023, supervised by s6-overlay"
 
 # Software versions
-ARG LDM_VERSION=6.15.0
-ARG S6_OVERLAY_VERSION=3.2.0.2
+ARG LDM_VERSION=6.15.1
+ARG S6_OVERLAY_VERSION=3.2.3.2
 
 # Install system packages
 RUN dnf -y install \
